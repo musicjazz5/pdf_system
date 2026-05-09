@@ -1,3 +1,6 @@
 streamlit>=1.44
 weasyprint>=66.0
 pypdf>=6.0
+pandas>=2.0
+openpyxl>=3.1
+xlsxwriter>=3.1

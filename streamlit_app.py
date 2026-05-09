@@ -165,6 +165,11 @@ def render_header() -> None:
     )
     st.title("PDF 研究報告中心")
     st.caption("整合既有 PDF 報告、支援一鍵重新生成與瀏覽下載。")
+    st.info(
+        "📊 **聯詠科技 3034 估值分析**（TradingView 整合版）已上線 — "
+        "請使用左側「聯詠科技估值分析」頁面查看即時行情、估值矩陣、股票分析與資料下載。",
+        icon="📈",
+    )
 
 
 def render_actions() -> None:
