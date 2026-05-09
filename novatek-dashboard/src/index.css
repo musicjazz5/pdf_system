@@ -1,0 +1,4 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans TC','PingFang TC',system-ui,sans-serif; background:#F7F9FC; }
+button { font-family: inherit; }
+table { border-collapse: collapse; }
