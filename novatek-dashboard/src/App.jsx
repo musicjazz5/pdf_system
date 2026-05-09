@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, Component } from "react";
 import { KPI, Tag } from "./components/Primitives.jsx";
 import TabTradingView from "./components/TabTradingView.jsx";
 import TabValuation   from "./components/TabValuation.jsx";
@@ -18,39 +18,62 @@ const TABS = [
   { id: "download",  label: "📥 下載資料",  component: TabDownload },
 ];
 
-// TradingView ticker tape — rendered once via raw HTML injection
-function TickerTape() {
-  return (
-    <div
-      dangerouslySetInnerHTML={{
-        __html: `
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript"
-              src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js"
-              async>
-            {
-              "symbols":[
-                {"proName":"TWSE:3034","title":"聯詠 3034"},
-                {"proName":"TWSE:2330","title":"台積電 2330"},
-                {"proName":"TWSE:2454","title":"聯發科 2454"},
-                {"proName":"NASDAQ:NVDA","title":"NVIDIA"},
-                {"proName":"NASDAQ:QCOM","title":"Qualcomm"},
-                {"proName":"NASDAQ:AVGO","title":"Broadcom"}
-              ],
-              "showSymbolLogo":true,
-              "isTransparent":false,
-              "displayMode":"adaptive",
-              "colorTheme":"light",
-              "locale":"zh_TW"
-            }
-            </script>
-          </div>`,
-      }}
-    />
-  );
+// ── Error boundary ───────────────────────────────────────────────
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 24, background: "#FEF2F2", borderRadius: 12, margin: 16, border: "1px solid #FCA5A5" }}>
+          <div style={{ fontWeight: 700, color: "#C0392B", marginBottom: 8 }}>⚠️ 渲染錯誤</div>
+          <pre style={{ fontSize: 12, color: "#7F1D1D", whiteSpace: "pre-wrap" }}>
+            {this.state.error.message}
+          </pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
+// ── TradingView ticker tape via useEffect script injection ───────
+function TickerTape() {
+  useEffect(() => {
+    const container = document.getElementById("tv-ticker-tape");
+    if (!container || container.dataset.loaded) return;
+    container.dataset.loaded = "1";
+
+    const widget = document.createElement("div");
+    widget.className = "tradingview-widget-container__widget";
+    container.appendChild(widget);
+
+    const script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
+    script.async = true;
+    script.textContent = JSON.stringify({
+      symbols: [
+        { proName: "TWSE:3034",   title: "聯詠 3034" },
+        { proName: "TWSE:2330",   title: "台積電 2330" },
+        { proName: "TWSE:2454",   title: "聯發科 2454" },
+        { proName: "NASDAQ:NVDA", title: "NVIDIA" },
+        { proName: "NASDAQ:QCOM", title: "Qualcomm" },
+        { proName: "NASDAQ:AVGO", title: "Broadcom" },
+      ],
+      showSymbolLogo: true,
+      isTransparent: false,
+      displayMode: "adaptive",
+      colorTheme: "light",
+      locale: "zh_TW",
+    });
+    container.appendChild(script);
+  }, []);
+
+  return <div id="tv-ticker-tape" className="tradingview-widget-container" style={{ minHeight: 46 }} />;
+}
+
+// ── Main app ─────────────────────────────────────────────────────
 export default function App() {
   const [activeTab, setActiveTab] = useState("tv");
   const ActiveComponent = TABS.find((t) => t.id === activeTab)?.component ?? TabTradingView;
@@ -61,7 +84,9 @@ export default function App() {
       background: "#F7F9FC",
       minHeight: "100vh",
     }}>
-      <TickerTape />
+      <ErrorBoundary>
+        <TickerTape />
+      </ErrorBoundary>
 
       <div style={{ maxWidth: 980, margin: "0 auto", padding: "20px 16px" }}>
 
@@ -114,8 +139,10 @@ export default function App() {
           ))}
         </div>
 
-        {/* Active tab content */}
-        <ActiveComponent />
+        {/* Active tab content — each tab is independently error-bounded */}
+        <ErrorBoundary key={activeTab}>
+          <ActiveComponent />
+        </ErrorBoundary>
 
         {/* Footer */}
         <div style={{
